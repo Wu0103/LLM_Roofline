@@ -1,0 +1,28 @@
+{
+    "hardware": {
+        "_comment": "所有数值都统一到G",
+        "peak performance": 4096,
+        "memory capacity": 16,
+        "bank level bw": 4,
+        "channel level bw": 51.2,
+        "stack level bw": 256,
+        "bank per channel": 64,
+        "channel per stack": 16
+    },
+    "model":{
+        "n_embd": 4096,
+        "n_hidden": 16384,
+        "n_layer": 28,
+        "n_head": 16
+    },
+    "deployment": {
+        "tensor parallelism": 1,
+        "pipeline parallelism": 1,
+        "head per channel": 1
+    },
+    "input": {
+        "batch size": 1,
+        "input tokens": 8,
+        "output tokens": 2048
+    }
+}

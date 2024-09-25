@@ -1,0 +1,24 @@
+{
+    "hardware": {
+        "_comment": "所有数值都统一到G",
+        "peak performance": 7168,
+        "Memory BW": 900
+    },
+    "model":{
+        "n_embd": 4096,
+        "n_hidden": 16384,
+        "n_layer": 28,
+        "n_head": 16
+    },
+    "deployment": {
+        "tensor parallelism": 1,
+        "pipeline parallelism": 1,
+        "head per channel": 1,
+        "column partition": "true"
+    },
+    "input": {
+        "batch size": 1,
+        "input tokens": 8,
+        "output tokens": 2048
+    }
+}
