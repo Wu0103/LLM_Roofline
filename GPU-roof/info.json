@@ -1,7 +1,7 @@
 {
     "hardware": {
         "_comment": "所有数值都统一到G",
-        "peak performance": 7168,
+        "peak performance": 14336,
         "Memory BW": 900
     },
     "model":{

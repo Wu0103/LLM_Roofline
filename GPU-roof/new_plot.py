@@ -34,12 +34,12 @@ def plot(info, Data):
     Perf = info.get('hardware').get('peak performance')
     BW = info.get('hardware').get('Memory BW')
 
-    Atten_Latency = max(Atten_Flops / (Perf * 1024 * 1024 * 1024), 4 * (Atten_Read + Atten_Write) / (BW * 1024 * 1024 * 1024))
-    FFN_Latency = max(FFN_Flops / (Perf * 1024 * 1024 * 1024), 4 * (FFN_Read + FFN_Write) / (BW * 1024 * 1024 * 1024))
+    Atten_Latency = max(Atten_Flops / (Perf * 1024 * 1024 * 1024), 2 * (Atten_Read + Atten_Write) / (BW * 1024 * 1024 * 1024))
+    FFN_Latency = max(FFN_Flops / (Perf * 1024 * 1024 * 1024), 2 * (FFN_Read + FFN_Write) / (BW * 1024 * 1024 * 1024))
 
-    Atten_AI = Atten_Flops / (4 * (Atten_Read + Atten_Write))
-    FFN_AI = FFN_Flops / (4 * (FFN_Read + FFN_Write))
-    Overall_AI = (Atten_Flops + FFN_Flops) / (4 * (Atten_Read + FFN_Read + Atten_Write + FFN_Write))
+    Atten_AI = Atten_Flops / (2 * (Atten_Read + Atten_Write))
+    FFN_AI = FFN_Flops / (2 * (FFN_Read + FFN_Write))
+    Overall_AI = (Atten_Flops + FFN_Flops) / (2 * (Atten_Read + FFN_Read + Atten_Write + FFN_Write))
 
     print("Atten_Flops/Atten_Latency:", Atten_Flops / Atten_Latency)
     print("FFN_Flops/FFN_Latency:", FFN_Flops / FFN_Latency)
@@ -47,7 +47,7 @@ def plot(info, Data):
     print("FFN_AI:", FFN_AI)
     print("Overall_AI:", Overall_AI)
 
-    data_for_plot = ["Atten", Atten_Flops / (Atten_Latency * 1024 * 1024 * 1024), Atten_AI]
+    data_for_plot = ["Attention", Atten_Flops / (Atten_Latency * 1024 * 1024 * 1024), Atten_AI]
     csv_file_path = "./files/plot.csv"
     with open(csv_file_path, mode='w', newline='') as file:
         csv_writer = csv.writer(file)
@@ -62,7 +62,7 @@ def plot(info, Data):
         csv_writer.writerow(data_for_plot)
 
     hw_platforms = list()
-    hw_platforms.append("GPU")
+    hw_platforms.append("Hardware")
     hw_platforms.append(Perf)
     hw_platforms.append(BW)
 
@@ -96,41 +96,41 @@ def process(hw_platforms, sw_apps):
     F_I = roofline(1, numpy.array(hw_platforms[1]), numpy.array(hw_platforms[2]), x_intensity)
     roofs.append(F_I)
 
-    fig, axis = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+    fig, axis = plt.subplots(nrows=1, ncols=1, figsize=(4, 3.5))
     plt.setp(axis, xticks=x_intensity, yticks=y_performance)
-    plt.yticks(fontsize=12)
-    plt.xticks(fontsize=12)
-    axis.set_xlabel('Arithmetic Intensity (FLOP/byte)', fontsize=11)
-    axis.set_ylabel("Theoretical Performance (GFLOPs)", fontsize=11)
+    plt.yticks(fontsize=14)
+    plt.xticks(fontsize=14)
+    axis.set_xlabel('Arithmetic Intensity (FLOPs/byte)', fontsize=14)
+    axis.set_ylabel("Performance (GFLOPs)", fontsize=14)
 
     if sw_apps != []:
         apps = [a[0] for a in sw_apps]
         Performance = numpy.array([a[1] for a in sw_apps])
         apps_intensity = numpy.array([a[2] for a in sw_apps])
 
-    axis.set_xscale('log', basex=10)
-    axis.set_yscale('log', basey=10)
+    axis.set_xscale('log', base=10)
+    axis.set_yscale('log', base=10)
 
-    axis.plot(x_intensity, roofs[0], label=platforms, color='#D2691E')
+    axis.plot(x_intensity, roofs[0],  color='#D2691E')#label=platforms,
 
     x_point = x_intensity[70]
-    y_point = roofs[0][70]
-    axis.annotate('GPU Perf: 7 TFLOPS', xy=(x_point, y_point), xytext=(x_point, y_point + 1500),
-                  horizontalalignment='center', verticalalignment='top', fontsize=10)
+    y_point = roofs[0][50]
+    axis.annotate('GPU Perf: 14 TFLOPS', xy=(x_point, y_point), xytext=(x_point, y_point + 1200),
+                  horizontalalignment='center', verticalalignment='top', fontsize=12)
 
     x_point = x_intensity[40]
-    y_point = roofs[0][40]
-    axis.text(x_point, y_point, 'Memory BW: 900 GB/s', fontsize=10, rotation=65,
+    y_point = roofs[0][45]
+    axis.text(x_point, y_point, 'Memory BW: 900 GB/s', fontsize=12, rotation=55,
               verticalalignment='top', horizontalalignment='right')
 
-    color = matplotlib.pyplot.cm.Plasma(numpy.linspace(0, 1, len(apps)))
-    marker = itertools.cycle(('o', 'v', '^', '<', '>', 's', 'p', '*', 'h', 'H', 'D', 'd'))
+    #color = matplotlib.pyplot.cm.oranges(numpy.linspace(0, 1, len(apps)))
+    marker = itertools.cycle(('o', '*', 's', '<', '>', 's', 'p', 'v', 'h', 'H', 'D', 'd'))
     if sw_apps != []:
         for idx, val in enumerate(apps):
-            axis.plot(apps_intensity[idx], Performance[idx], label=val, linestyle='-.', marker=next(marker), color=color[idx])
+            axis.plot(apps_intensity[idx], Performance[idx], label=val, linestyle='-.', marker=next(marker), color="orange")#color[idx])
 
+    axis.legend(loc='upper center', bbox_to_anchor=(0.41, 1.2), ncol=3, prop={'size': 12})
     fig.tight_layout()
-    axis.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), ncol=3, prop={'size': 9})
     plt.show()
     plt.savefig('newplot_roofline.png', dpi=500)
 
