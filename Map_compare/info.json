@@ -1,0 +1,26 @@
+{
+    "hardware": {
+        "_comment": "所有数值都统一到G",
+        "peak performance": 9830.4,
+        "GPU performance": 14336,
+        "memory capacity": 64,
+        "bw": 64,
+        "System BW": 1024,
+        "Unit per channel": 8,
+        "channel per stack": 16
+    },
+    "model":{
+        "n_embd": 4096,
+        "n_hidden": 16384,
+        "n_layer": 28,
+        "n_head": 16
+    },
+    "deployment": {
+        "tensor parallelism": 4,
+        "pipeline parallelism": 1,
+        "head per channel": 1
+    },
+    "input": {
+        "input tokens": 32
+    }
+}

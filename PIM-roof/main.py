@@ -1,3 +1,8 @@
+########
+# this one is based on a UPMEM-like PIM
+# but the PIM performance data is from HBM-PIM
+
+
 import json
 import sys
 from record import Data
@@ -67,6 +72,13 @@ def simulate():
     data.step4_write = step4.Write
     data.step5_write = step5.Write
     data.step6_write = step6.Write
+
+    data.step1_flops_ = step1.Flops_
+    data.step2_flops_ = step2.Flops_
+    data.step3_flops_ = step3.Flops_
+    data.step4_flops_ = step4.Flops_
+    data.step5_flops_ = step5.Flops_
+    data.step6_flops_ = step6.Flops_
 
 
     data.iterate_layer(model.n_layer)

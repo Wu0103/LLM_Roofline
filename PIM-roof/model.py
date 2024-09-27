@@ -15,130 +15,130 @@ class Modelparameter(object):
         self.HPS = self.n_head/self.TP
         self.CPH = self.CPS/self.HPS
 
+#### everything is count per stack, except flops_
 
-class Step1(Modelparameter):    #communicate latency counted under hierarchy case
+class Step1(Modelparameter):    # Calculate Q/K/V
     def __init__(self,info):
         super().__init__(info)
         self.Flops = 0
         self.Read = 0
         self.Write = 0
+        self.Flops_ = 0 # reduction
 
     def count(self,generated):
         if self.column == "True":
-            self.Flops += 3*2*self.batch*self.n_embd*self.n_embd/self.TP
-            self.Read += self.batch*(self.n_embd/self.n_head)*self.HPS
-            self.Write += self.batch*(self.n_embd/self.n_head)*self.BPC*self.CPS
-            #self.Read += self.batch*(self.n_embd/self.CPS)/self.TP
-            #self.Write += 3*self.batch*(self.n_embd/self.n_head)*self.BPC
+            self.Write += self.batch*self.n_embd*self.BPC*self.CPS # write input, consider no broadcast
+            self.Flops += 3*2*self.batch*self.n_embd*self.n_embd/self.TP # FLOPS counted per Stack
+            self.Read += 3*self.batch*(self.n_embd/self.n_head)*self.HPS # Read Q/K out
         else:
+            self.Write += self.batch*self.n_embd/self.TP # write input, partitioned
             self.Flops += 3*2*self.batch*self.n_embd*self.n_embd/self.TP
-            self.Read += 3*self.batch*(self.n_embd/self.n_head)*self.BPC*self.CPS
-            self.Write += 3*self.batch*(self.n_embd/self.n_head)*self.HPS
-            #self.Read += 3*self.batch*(self.n_embd/self.n_head)*self.BPC
-            #self.Write += 3*self.batch*(self.n_embd/self.n_head)
+            self.Read += 3*self.batch*(self.n_embd/self.n_head)*self.BPC*self.CPH*self.HPS
+            self.Flops_ += 3*self.batch*(self.n_embd/self.n_head)*self.BPC*self.CPH*self.HPS*self.TP
+            #self.Write += 3*self.batch*(self.n_embd/self.n_head)*self.HPS
         return
 
-class Step2(Modelparameter):    #communicate latency counted under hierarchy
+class Step2(Modelparameter):    #Calculate Q*K
     def __init__(self,info):
         super().__init__(info)
         self.Flops = 0
         self.Read = 0
         self.Write = 0
+        self.Flops_ = 0 # reduction
 
     def count(self,generated):
         if self.column == "True":
+            self.Write += self.batch*(self.n_embd/self.n_head)*self.HPS*self.BPC*self.CPH # write Q to all PU
+            self.Write += self.batch*(self.n_embd/self.n_head)*self.HPS # write K in
             self.Flops += 2*self.batch*self.n_embd*(self.input_tokens+generated)/self.TP
-            self.Read += (self.batch*(self.input_tokens+generated))*self.HPS
-            self.Write += self.batch*(self.input_tokens+generated)*self.BPC*self.CPS
-            #self.Read += (self.batch*(self.input_tokens+generated)/self.CPS)/self.TP
-            #self.Write += self.batch*(self.input_tokens+generated)*self.BPC
-        else:    
+            self.Read += (self.batch*(self.input_tokens+generated))*self.HPS # Read Q*K out
+        else:   
+            self.Write += self.batch*self.n_embd/self.TP # write Q in
+            self.Write += self.batch*self.n_embd/self.TP # write K in
             self.Flops += 2*self.batch*self.n_embd*(self.input_tokens+generated)/self.TP
             self.Read += self.batch*(self.input_tokens+generated)*self.BPC*self.CPS
-            self.Write += self.batch*(self.input_tokens+generated)*self.HPS
-            #self.Read += self.batch*(self.input_tokens+generated)*self.BPC
-            #self.Write += self.batch*(self.input_tokens+generated)/self.CPS
+            self.Flops_ += self.batch*(self.input_tokens+generated)*self.BPC*self.CPS*self.TP
         
  
-class Step3(Modelparameter):    
+class Step3(Modelparameter):    # Calculate Q*K*V
     def __init__(self,info):
         super().__init__(info)
         self.Flops = 0
         self.Read = 0
         self.Write = 0
+        self.Flops_ = 0 # reduction
 
     def count(self,generated):
         if self.column == "True":
+            self.Write += (self.batch*(self.input_tokens+generated))*self.HPS*self.BPC*self.CPH # write Q*K to all PU
+            self.Write += self.batch*(self.n_embd/self.n_head)*self.HPS # write V in
             self.Flops += 2*self.batch*(self.input_tokens+generated)*self.n_embd/self.TP
-            self.Read += self.batch*(self.n_embd/self.TP)
-            self.Write += self.batch*self.n_embd*self.BPC*self.CPS
-            #self.Read += (self.batch*self.n_embd/self.CPS)/self.TP
-            #self.Write += self.batch*self.n_embd*self.BPC
+            self.Read += self.batch*(self.n_embd/self.TP) # Read Q*K*V out
         else:
+            self.Write += self.batch*(self.input_tokens+generated)*self.HPS # write QK in
+            self.Write += self.batch*(self.n_embd/self.n_hidden)*self.HPS # write V in
             self.Flops += 2*self.batch*(self.input_tokens+generated)*self.n_embd/self.TP
             self.Read += self.batch*(self.n_embd/self.n_head)*self.BPC*self.CPS
-            self.Write += self.batch*(self.n_embd/self.TP)
-            #self.Read += self.batch*self.n_embd*self.BPC
-            #self.Write += self.batch*self.n_embd/self.CPS
+            self.Flops_ += self.batch*(self.n_embd/self.n_head)*self.BPC*self.CPS*self.TP
         
  
-class Step4(Modelparameter):    #communicate latency counted under hierarchy case
+class Step4(Modelparameter):    #Calculate O
     def __init__(self,info):
         super().__init__(info)
         self.Flops = 0
         self.Read = 0
         self.Write = 0
+        self.Flops_ = 0 # reduction
 
     def count(self,generated):
         if self.column == "True":
+            self.Write += self.batch*self.n_embd*self.BPC*self.CPS # Write Q*K*V to all PU
             self.Flops += 2*self.batch*self.n_embd*self.n_embd/self.TP
             self.Read += self.batch*(self.n_embd/self.TP)
-            self.Write += self.batch*self.n_embd*self.BPC*self.CPS
-            #self.Read += (self.batch*self.n_embd/self.CPS )/self.TP
-            #self.Write += self.batch*self.n_embd*self.BPC
         else:
+            self.Write += self.batch*self.n_embd/self.TP
             self.Flops += 2*self.batch*self.n_embd*self.n_embd/self.TP
             self.Read += self.batch*self.n_embd*self.BPC*self.CPS
-            self.Write += self.batch*(self.n_embd/self.TP)
-            #self.Read += self.batch*self.n_embd*self.BPC
-            #self.Write += self.batch*self.n_embd/self.CPS        
+            self.Flops_ += self.batch*self.n_embd*self.BPC*self.CPS*self.TP      
 
            
-class Step5(Modelparameter):    #communicate latency counted under hierarchy case
+class Step5(Modelparameter):    # Calculte FC1
     def __init__(self,info):
         super().__init__(info)
         self.Flops = 0
         self.Read = 0
         self.Write = 0
+        self.Flops_ = 0 # reduction
 
     def count(self,generated):
         if self.column == "True":
+            self.Write += self.batch*self.n_embd*self.BPC*self.CPS # Write O to all PU
             self.Flops += 2*self.batch*self.n_embd*self.n_hidden/self.TP
             self.Read += self.batch*(self.n_hidden/self.TP)
-            self.Write += self.batch*self.n_hidden*self.BPC*self.CPS
-            #self.Read += (self.batch*self.n_hidden/self.CPS)/self.TP
-            #self.Write += self.batch*self.n_hidden*self.BPC
         else:
+            self.Write += self.batch*self.n_embd/self.TP
             self.Flops += 2*self.batch*self.n_embd*self.n_hidden/self.TP
             self.Read += self.batch*self.n_hidden*self.BPC*self.CPS
-            self.Write += self.batch*self.n_hidden/self.TP
+            self.Flops_ += self.batch*self.n_hidden*self.BPC*self.CPS*self.TP
 
        
-class Step6(Modelparameter):    #communicate latency counted under hierarchy case
+class Step6(Modelparameter):    #Calculate FC2
     def __init__(self,info):
         super().__init__(info)
         self.Flops = 0
         self.Read = 0
         self.Write = 0
+        self.Flops_ = 0 # reduction
 
     def count(self,generated):
         if self.column == "True":
+            self.Write += self.batch*self.n_hidden*self.BPC*self.CPS
             self.Flops += 2*self.batch*self.n_embd*self.n_hidden/self.TP
             self.Read += (self.batch*self.n_embd/self.TP)
-            self.Write += self.batch*self.n_embd*self.BPC*self.CPS
         else:
+            self.Write += self.batch*self.n_hidden/self.TP
             self.Flops += 2*self.batch*self.n_embd*self.n_hidden/self.TP
             self.Read += self.batch*self.n_embd*self.BPC*self.CPS
-            self.Write += self.batch*self.n_embd/self.TP
+            self.Flops_ += self.batch*self.n_embd*self.BPC*self.CPS*self.TP
 
   

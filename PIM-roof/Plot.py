@@ -9,30 +9,28 @@ import numpy as np
 START = -1
 STOP = 3
 N = abs(STOP - START + 1)
-Ele_size = 4
+Ele_size = 2
 def plot(info,Data):
     Perf = info.get('hardware').get('peak performance')
+    GPUPerf = info.get('hardware').get('GPU performance')
     BW = info.get('hardware').get('bw')
     SysBW = info.get('hardware').get('System BW')
+    TP = info.get('deployment').get('tensor parallelism')
 
     Atten_Flops = Data.step1_flops + Data.step2_flops + Data.step3_flops + Data.step4_flops
+    Atten_Flops_ = Data.step1_flops_ + Data.step2_flops_ + Data.step3_flops_ + Data.step4_flops_
     FFN_Flops = Data.step5_flops + Data.step6_flops
+    FFN_Flops_ = Data.step5_flops_ + Data.step6_flops_
 
     Atten_Read = Data.step1_read + Data.step2_read + Data.step3_read + Data.step4_read
     Atten_Write = Data.step1_write + Data.step2_write + Data.step3_write + Data.step4_write
     FFN_Read = Data.step5_read + Data.step6_read
     FFN_Write = Data.step5_write + Data.step6_write
 
-    Atten_Latency = (Atten_Flops/(Perf*1024*1024*1024)+(Ele_size*(Atten_Read+Atten_Write)/(SysBW*1024*1024*1024)))
-    FFN_Latency = (FFN_Flops/(Perf*1024*1024*1024)+(Ele_size*(FFN_Read+FFN_Write)/(SysBW*1024*1024*1024)))
+    Atten_Latency = Atten_Flops_/(GPUPerf*1024*1024*1024)+(Atten_Flops/(Perf*1024*1024*1024/TP)+(Ele_size*(Atten_Read+Atten_Write)/(SysBW*1024*1024*1024/TP)))
+    FFN_Latency = FFN_Flops_/(GPUPerf*1024*1024*1024)+(FFN_Flops/(Perf*1024*1024*1024/TP)+(Ele_size*(FFN_Read+FFN_Write)/(SysBW*1024*1024*1024/TP)))
 
-    #Atten_Read = SysBW*Atten_Read/BW
-    #Atten_Write = SysBW*Atten_Write/BW
-    #FFN_Read = SysBW*FFN_Read/BW
-    #FFN_Write = SysBW*FFN_Write/BW
-    
-
-    attendata = [Atten_Flops,Atten_Read,Atten_Write]
+    attendata = [Atten_Flops,Atten_Read,Atten_Write,Atten_Flops_]
     csv_file_path = "./files/attendata.csv"
     # 使用 "a" 模式打开文件，如果文件不存在则创建
     with open(csv_file_path, mode='w', newline='') as file:
@@ -41,7 +39,7 @@ def plot(info,Data):
         # 写入数据到 CSV 文件
         csv_writer.writerow(attendata)
 
-    ffndata = [FFN_Flops,FFN_Read,FFN_Write]
+    ffndata = [FFN_Flops,FFN_Read,FFN_Write,FFN_Flops_]
     csv_file_path = "./files/ffndata.csv"
     # 使用 "a" 模式打开文件，如果文件不存在则创建
     with open(csv_file_path, mode='w', newline='') as file:
@@ -55,11 +53,13 @@ def plot(info,Data):
     Overall_AI = (Atten_Flops+FFN_Flops)/(Ele_size*(Atten_Read+FFN_Read+Atten_Write+FFN_Write))
 
 
-    print("Atten_AI:",Atten_AI)
-    print("FFN_AI:",FFN_AI)
-    print("Overall_AI:",Overall_AI)
+    print("Atten_Flops/Atten_Latency:", Atten_Flops / Atten_Latency)
+    print("FFN_Flops/FFN_Latency:", FFN_Flops / FFN_Latency)
+    print("Atten_AI:", Atten_AI)
+    print("FFN_AI:", FFN_AI)
+    print("Overall_AI:", Overall_AI)
 
-    data_for_plot=["Atten",Atten_Flops/(Atten_Latency*1024*1024*1024),Atten_AI]
+    data_for_plot=["Attention",Atten_Flops/(Atten_Latency*1024*1024*1024),Atten_AI]
     csv_file_path = "./files/plot.csv"
     # 使用 "a" 模式打开文件，如果文件不存在则创建
     with open(csv_file_path, mode='w', newline='') as file:
@@ -123,12 +123,12 @@ def process(hw_platforms, sw_apps):
             x_intensity)
     roofs.append(F_I)
 
-    fig, axis = matplotlib.pyplot.subplots(nrows=1, ncols=1,figsize=(4, 4))
+    fig, axis = matplotlib.pyplot.subplots(nrows=1, ncols=1,figsize=(4.1, 3.5))
     matplotlib.pyplot.setp(axis, xticks=x_intensity,yticks=y_performance)
-    matplotlib.pyplot.yticks(fontsize=12)
-    matplotlib.pyplot.xticks(fontsize=12)
-    axis.set_xlabel('Arithmetic Intensity (FLOP/byte)', fontsize=11)
-    axis.set_ylabel("Theoretical Performance (GFLOPs)", fontsize=11)
+    matplotlib.pyplot.yticks(fontsize=14)
+    matplotlib.pyplot.xticks(fontsize=14)
+    axis.set_xlabel('Arithmetic Intensity (FLOP/byte)', fontsize=14)
+    axis.set_ylabel("Performance (GFLOPs)", fontsize=14)
 
     #axis.grid(True, which="both", ls="--", linewidth=0.5) # 添加网格线
 
@@ -139,37 +139,35 @@ def process(hw_platforms, sw_apps):
         apps_intensity = numpy.array([a[2] for a in sw_apps])
     
 
-    axis.set_xscale('log', basex=10)
-    axis.set_yscale('log', basey=10)
+    axis.set_xscale('log', base=10)
+    axis.set_yscale('log', base=10)
 
-    axis.plot(x_intensity, roofs[0],label=platforms)
+    axis.plot(x_intensity, roofs[0],color='#D2691E')
         # 要注释的点
     
     x_point = x_intensity[700]
     y_point = roofs[0][700]
 
     # 在线上添加文字
-    axis.annotate('PIM Perf: 4 TFLOPS', xy=(x_point, y_point), xytext=(x_point, y_point-1000),
-                horizontalalignment='center', verticalalignment='top',fontsize=10) 
+    axis.annotate('PIM Perf: 9.6 TFLOPS', xy=(x_point, y_point), xytext=(x_point, y_point-1000),
+                horizontalalignment='center', verticalalignment='top',fontsize=12) 
 
 
     x_point = x_intensity[200]
-    y_point = roofs[0][200]
-    axis.text(x_point, y_point, 'Memory BW: 1024 GB/s', fontsize=10, rotation=66, 
+    y_point = roofs[0][450]
+    axis.text(x_point, y_point, 'Memory BW: 1024 GB/s', fontsize=12, rotation=55, 
         verticalalignment='top', horizontalalignment='center')
 
-    color = matplotlib.pyplot.cm.plasma(numpy.linspace(0, 1, len(apps))) # 使用viridis颜色映射
-    marker = itertools.cycle(('o', 'v', '^', '<', '>', 's', 'p', '*', 'h', 'H', 'D', 'd')) 
+    marker = itertools.cycle(('o', '*', 's', '<', '>', 's', 'p', 'v', 'h', 'H', 'D', 'd'))
     if sw_apps != []:
         for idx, val in enumerate(apps):
-            axis.plot(apps_intensity[idx],Performance[idx], label=val, linestyle='-.', marker=next(marker), color=color[idx])
+            axis.plot(apps_intensity[idx], Performance[idx], label=val, linestyle='-.', marker=next(marker), color="orange")#color[idx])
 
     
-    
+    axis.legend(loc='upper center', bbox_to_anchor=(0.41, 1.2), ncol=3, prop={'size': 12}, frameon=False)
     fig.tight_layout()
-    axis.legend(loc='upper left', prop={'size': 9})
     matplotlib.pyplot.show()
-    matplotlib.pyplot.savefig('plot_roofline.png', dpi=500 )
+    matplotlib.pyplot.savefig('PIM_Roofline.png', dpi=2000)
 
 
 def read_file(filename, row_len):

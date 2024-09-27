@@ -18,7 +18,7 @@
     },
     "input": {
         "batch size": 1,
-        "input tokens": 8,
+        "input tokens": 32,
         "output tokens": 2048
     }
 }

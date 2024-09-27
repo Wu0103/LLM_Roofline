@@ -2,7 +2,7 @@ import json
 import sys
 from record import Data
 from model import Modelparameter,Step1,Step2,Step3,Step4,Step5,Step6
-from plot import plot
+from new_plot import plot
 
 def read_info(file_path):
     try:

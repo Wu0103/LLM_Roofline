@@ -34,8 +34,12 @@ def plot(info, Data):
     Perf = info.get('hardware').get('peak performance')
     BW = info.get('hardware').get('Memory BW')
 
-    Atten_Latency = max(Atten_Flops / (Perf * 1024 * 1024 * 1024), 2 * (Atten_Read + Atten_Write) / (BW * 1024 * 1024 * 1024))
-    FFN_Latency = max(FFN_Flops / (Perf * 1024 * 1024 * 1024), 2 * (FFN_Read + FFN_Write) / (BW * 1024 * 1024 * 1024))
+    # Atten_Latency = max(Atten_Flops / (Perf * 1024 * 1024 * 1024), 2 * (Atten_Read + Atten_Write) / (BW * 1024 * 1024 * 1024))
+    # FFN_Latency = max(FFN_Flops / (Perf * 1024 * 1024 * 1024), 2 * (FFN_Read + FFN_Write) / (BW * 1024 * 1024 * 1024))
+    Atten_Latency = (Atten_Flops / (Perf * 1024 * 1024 * 1024)+ 2 * (Atten_Read + Atten_Write) / (BW * 1024 * 1024 * 1024))
+    FFN_Latency = (FFN_Flops / (Perf * 1024 * 1024 * 1024)+ 2 * (FFN_Read + FFN_Write) / (BW * 1024 * 1024 * 1024))
+
+
 
     Atten_AI = Atten_Flops / (2 * (Atten_Read + Atten_Write))
     FFN_AI = FFN_Flops / (2 * (FFN_Read + FFN_Write))
@@ -96,7 +100,7 @@ def process(hw_platforms, sw_apps):
     F_I = roofline(1, numpy.array(hw_platforms[1]), numpy.array(hw_platforms[2]), x_intensity)
     roofs.append(F_I)
 
-    fig, axis = plt.subplots(nrows=1, ncols=1, figsize=(4, 3.5))
+    fig, axis = plt.subplots(nrows=1, ncols=1, figsize=(4.1, 3.5))
     plt.setp(axis, xticks=x_intensity, yticks=y_performance)
     plt.yticks(fontsize=14)
     plt.xticks(fontsize=14)
@@ -120,7 +124,7 @@ def process(hw_platforms, sw_apps):
 
     x_point = x_intensity[40]
     y_point = roofs[0][45]
-    axis.text(x_point, y_point, 'Memory BW: 900 GB/s', fontsize=12, rotation=55,
+    axis.text(x_point, y_point, 'Memory BW: 900 GB/s', fontsize=12, rotation=53,
               verticalalignment='top', horizontalalignment='right')
 
     #color = matplotlib.pyplot.cm.oranges(numpy.linspace(0, 1, len(apps)))
@@ -129,10 +133,10 @@ def process(hw_platforms, sw_apps):
         for idx, val in enumerate(apps):
             axis.plot(apps_intensity[idx], Performance[idx], label=val, linestyle='-.', marker=next(marker), color="orange")#color[idx])
 
-    axis.legend(loc='upper center', bbox_to_anchor=(0.41, 1.2), ncol=3, prop={'size': 12})
+    axis.legend(loc='upper center', bbox_to_anchor=(0.41, 1.2), ncol=3, prop={'size': 12},frameon=False)
     fig.tight_layout()
     plt.show()
-    plt.savefig('newplot_roofline.png', dpi=500)
+    plt.savefig('GPU_Roofline.png', dpi=2000)
 
 def read_file(filename, row_len):
     assert isinstance(row_len, int)

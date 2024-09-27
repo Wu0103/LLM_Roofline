@@ -1,8 +1,9 @@
 {
     "hardware": {
         "_comment": "所有数值都统一到G",
-        "peak performance": 4096,
-        "memory capacity": 16,
+        "peak performance": 9830.4,
+        "GPU performance": 9830.4,
+        "memory capacity": 64,
         "bw": 64,
         "System BW": 1024,
         "Unit per channel": 16,
@@ -18,11 +19,11 @@
         "tensor parallelism": 4,
         "pipeline parallelism": 1,
         "head per channel": 1,
-        "column partition": "False"
+        "column partition": "True"
     },
     "input": {
         "batch size": 1,
-        "input tokens": 8,
+        "input tokens": 32,
         "output tokens": 2048
     }
 }
